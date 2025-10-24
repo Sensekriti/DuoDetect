@@ -228,7 +228,7 @@ MIT License – Free to use, modify, and distribute
 ## Support
 
 For issues, open a GitHub issue or contact:  
-`your.email@example.com`
+`sensekritiinnovation@gmail.com`
 
 ---
 
