@@ -9,8 +9,11 @@ import hashlib
 import pymongo
 from pymongo.errors import ConnectionFailure
 import uuid
+import time
 from flask_mail import Mail, Message
 from dotenv import load_dotenv
+from deepface import DeepFace
+from deepface.modules import modeling
 
 
 load_dotenv()  # Load .env file
@@ -107,13 +110,27 @@ def submit_page():
         with open(filepath, 'rb') as f:
             img_hash = hashlib.sha256(f.read()).hexdigest()
 
+        print("Running AI face matching...")
+        start = time.time()
+        status, best_match_id, best_confidence, top_matches = run_face_matching(
+        filepath, app.config['UPLOAD_FOLDER'], filename
+        )
+        ai_time = round(time.time() - start, 2)
+
         # Save to DB
         submission = {
             'application_id': session['application_id'],
             'name': name, 'email': email, 'age': age, 'phone': phone,
             'address': address, 'photo_path': filename, 'image_hash': img_hash,
             'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'status': 'submitted'
+            'status': 'processed',
+            'ai_result': {
+                'status': status,
+                'best_match_id': best_match_id,
+                'best_confidence': best_confidence,
+                'ai_time_seconds': ai_time,
+                'top_matches': top_matches
+            }
         }
 
         try:
@@ -134,7 +151,6 @@ def submit_page():
                     )
                 )
                 mail.send(msg)
-                print(f"Email sent to {email}")
             except Exception as e:
                 print(f"Email failed: {e}")
 
@@ -157,29 +173,77 @@ def submit_page():
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-def apply_ai_deduplication_logic(submissions):
-    pattern = ['A', 'B', 'A', 'A', 'B']
-    for i, sub in enumerate(submissions):
-        if i < len(pattern):
-            sub['cluster_id'] = pattern[i]
-            sub['ai_confidence'] = f"{95 - (i * 5)}%"
-            sub['verification_status'] = 'Potential Duplicate - Requires Verification' if pattern[i] == 'A' else 'Verified Unique Application'
-        else:
-            sub['cluster_id'] = 'unique'
-            sub['ai_confidence'] = "Pending"
-            sub['verification_status'] = 'Additional Application - Pending AI Analysis'
-    return submissions
+# --- REAL FACE MATCHING WITH TOP 5 ---
+def run_face_matching(probe_path: str, gallery_folder: str, exclude_filename: str):
+    try:
+        results = DeepFace.find(
+            img_path=probe_path,
+            db_path=gallery_folder,
+            model_name="ArcFace",
+            distance_metric="cosine",
+            enforce_detection=False,
+            detector_backend="opencv",
+            silent=True
+        )
+
+        if not results or (isinstance(results, list) and len(results) == 0):
+            return "Unique", None, None, []
+
+        df = results[0] if isinstance(results, list) else results
+        if df.empty:
+            return "Unique", None, None, []
+
+        # EXCLUDE SELF
+        df = df[df['identity'].apply(lambda x: os.path.basename(x) != exclude_filename)]
+        if df.empty:
+            return "Unique", None, None, []
+
+        df_sorted = df.sort_values("distance").head(5)
+        threshold = df_sorted.iloc[0].get("threshold", 0.40)
+        best_distance = df_sorted.iloc[0]["distance"]
+        is_duplicate = best_distance < threshold
+        status = "Duplicate" if is_duplicate else "Unique"
+
+        top_matches = []
+        for _, row in df_sorted.iterrows():
+            match_filename = os.path.basename(row["identity"])
+            match_id = match_filename.split('_')[0]
+            confidence = round((1 - row["distance"]) * 100, 2)
+            top_matches.append({
+                "application_id": match_id,
+                "photo_path": match_filename,
+                "distance": round(row["distance"], 4),
+                "confidence": confidence
+            })
+
+        best_match_id = top_matches[0]["application_id"] if top_matches else None
+        best_confidence = top_matches[0]["confidence"] if top_matches else None
+
+        return status, best_match_id, best_confidence, top_matches
+
+    except Exception as e:
+        print(f"DeepFace error: {e}")
+        return "Error", None, None, []
+
+    except Exception as e:
+        print(f"DeepFace error: {e}")
+        # Clean up on error
+        if os.path.exists(temp_gallery):
+            for f in os.listdir(temp_gallery):
+                os.remove(os.path.join(temp_gallery, f))
+            os.rmdir(temp_gallery)
+        return "Error", None, None, [f"AI error: {str(e)}"]
 
 @app.route('/Dashboard')
 def show_results():
     submissions = list(collection.find().sort("timestamp", 1))
-    submissions = apply_ai_deduplication_logic(submissions)
     stats = {
-        'total_applications': len(submissions),
-        'potential_duplicates': len([s for s in submissions if s['cluster_id'] == 'A']),
-        'unique_applications': len([s for s in submissions if s['cluster_id'] == 'B']),
-        'pending_analysis': len([s for s in submissions if s['cluster_id'] == 'unique'])
+        'total': len(submissions),
+        'duplicates': len([s for s in submissions if s.get('ai_result', {}).get('status') == 'Duplicate']),
+        'unique': len([s for s in submissions if s.get('ai_result', {}).get('status') == 'Unique']),
+        'pending': len([s for s in submissions if s.get('status') != 'processed'])
     }
+    print(submissions)
     return render_template('results.html', submissions=submissions, stats=stats)
 
 @app.route('/admin/clear')

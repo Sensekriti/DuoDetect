@@ -1,146 +1,203 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Analysis Results - IndiaAI</title>
+    <title>AI Results Dashboard - IndiaAI Face Authentication</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
     <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet">
+    <style>
+        .candidate-photo {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border: 2px solid #e0e0e0;
+        }
+
+        .stat-card {
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        details summary {
+            list-style: none;
+        }
+
+        details summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .match-photo {
+            width: 40px;
+            height: 40px;
+            object-fit: cover;
+            border: 1px solid #ddd;
+        }
+    </style>
 </head>
+
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top">
         <div class="container">
-            <a class="navbar-brand" href="/">
-                <i class="fas fa-robot me-2"></i>
-                IndiaAI Face Authentication
-            </a>
-            <div class="navbar-nav">
-                <a class="nav-link" href="/apply">New Application</a>
-                <a class="nav-link" href="/instructions">Instructions</a>
+            <a class="navbar-brand" href="/"><i class="fas fa-robot me-2"></i>IndiaAI Face Authentication</a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/apply">Apply</a>
+                <a class="nav-link" href="/privacy">Privacy</a>
+                <a class="nav-link text-warning" href="/admin/clear">Clear All</a>
             </div>
         </div>
     </nav>
 
     <div class="container mt-5">
-        <!-- Results Header -->
-        <div class="row mb-5">
-            <div class="col">
-                <h1 class="text-center fw-bold text-primary">
-                    <i class="fas fa-chart-bar me-2"></i>
-                    AI-Powered Deduplication Analysis
-                </h1>
-                <p class="text-center text-muted">
-                    Advanced facial recognition analysis for duplicate application detection
-                </p>
-            </div>
+        <div class="text-center mb-5">
+            <h1 class="fw-bold text-primary"><i class="fas fa-brain me-2"></i>AI Deduplication Results</h1>
+            <p class="text-muted">Real-time face matching using DeepFace (ArcFace + Cosine)</p>
         </div>
 
-        <!-- Statistics Cards -->
-        <div class="row mb-5">
+        <!-- Stats Cards -->
+        <div class="row mb-5 g-4">
             <div class="col-md-3">
-                <div class="stat-card text-center p-4 bg-primary text-white rounded">
-                    <h3 class="fw-bold">{{ stats.total_applications }}</h3>
-                    <p class="mb-0">Total Applications</p>
+                <div class="stat-card p-4 bg-primary text-white rounded shadow-sm">
+                    <h3 class="fw-bold">{{ stats.total }}</h3>
+                    <p class="mb-0"><i class="fas fa-users me-1"></i> Total Applications</p>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="stat-card text-center p-4 bg-success text-white rounded">
-                    <h3 class="fw-bold">{{ stats.unique_applications }}</h3>
-                    <p class="mb-0">Unique Verified</p>
+                <div class="stat-card p-4 bg-danger text-white rounded shadow-sm">
+                    <h3 class="fw-bold">{{ stats.duplicates }}</h3>
+                    <p class="mb-0"><i class="fas fa-clone me-1"></i> Duplicates</p>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="stat-card text-center p-4 bg-warning text-white rounded">
-                    <h3 class="fw-bold">{{ stats.potential_duplicates }}</h3>
-                    <p class="mb-0">Potential Duplicates</p>
+                <div class="stat-card p-4 bg-success text-white rounded shadow-sm">
+                    <h3 class="fw-bold">{{ stats.unique }}</h3>
+                    <p class="mb-0"><i class="fas fa-check-circle me-1"></i> Unique</p>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="stat-card text-center p-4 bg-secondary text-white rounded">
-                    <h3 class="fw-bold">{{ stats.pending_analysis }}</h3>
-                    <p class="mb-0">Pending Analysis</p>
+                <div class="stat-card p-4 bg-secondary text-white rounded shadow-sm">
+                    <h3 class="fw-bold">{{ stats.pending }}</h3>
+                    <p class="mb-0"><i class="fas fa-clock me-1"></i> Pending</p>
                 </div>
             </div>
         </div>
 
-        <!-- AI Analysis Results -->
-        <div class="card shadow mb-5">
-            <div class="card-header bg-light">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-microchip me-2 text-primary"></i>
-                    Real-time Application Analysis
-                </h5>
+        <!-- Results Table -->
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-table me-2"></i>Detailed AI Analysis</h5>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table id="analysisTable" class="table table-hover mb-0">
-                        <thead class="table-dark">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
                             <tr>
                                 <th>#</th>
-                                <th>Application ID</th>
-                                <th>Candidate Name</th>
-                                <th>AI Analysis</th>
-                                <th>Confidence Level</th>
-                                <th>Status</th>
+                                <th>App ID</th>
+                                <th>Name</th>
+                                <th>AI Result</th>
+                                <th>Confidence</th>
+                                <th>Match Info</th>
                                 <th>Photo</th>
-                                <th>Timestamp</th>
+                                <th>Submitted</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for sub in submissions %}
-                                <tr class="ai-analysis-row ai-cluster-{{ sub.cluster_id }}">
-                                    <td><strong>{{ loop.index }}</strong></td>
-                                    <td>
-                                        <code>{{ sub.application_id }}</code>
-                                    </td>
-                                    <td>{{ sub.name }}</td>
-                                    <td>
-                                        {% if sub.cluster_id == 'A' %}
-                                            <span class="badge bg-warning">
-                                                <i class="fas fa-exclamation-triangle me-1"></i>
-                                                Potential Duplicate
-                                            </span>
-                                        {% elif sub.cluster_id == 'B' %}
-                                            <span class="badge bg-success">
-                                                <i class="fas fa-check-circle me-1"></i>
-                                                Verified Unique
-                                            </span>
-                                        {% else %}
-                                            <span class="badge bg-secondary">
-                                                <i class="fas fa-clock me-1"></i>
-                                                Pending Analysis
-                                            </span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <div class="progress" style="height: 8px; width: 80px;">
-                                            {% if sub.ai_confidence != 'Pending' %}
-                                                <div class="progress-bar 
-                                                    {% if sub.cluster_id == 'A' %}bg-warning
-                                                    {% elif sub.cluster_id == 'B' %}bg-success
-                                                    {% else %}bg-secondary{% endif %}" 
-                                                    style="width: {{ sub.ai_confidence }}">
-                                                </div>
+                            <tr class="ai-analysis-row">
+                                <td><strong>{{ loop.index }}</strong></td>
+                                <td><code class="text-primary">{{ sub.application_id }}</code></td>
+                                <td>{{ sub.name }}</td>
+
+                                <!-- AI Result + Top 5 Matches -->
+                                <td>
+                                    <div>
+                                        <strong>
+                                            {% if sub.ai_result.status == 'Duplicate' %}
+                                            <span class="badge bg-danger">Duplicate</span>
+                                            {% elif sub.ai_result.status == 'Unique' %}
+                                            <span class="badge bg-success">Unique</span>
+                                            {% else %}
+                                            <span class="badge bg-secondary">{{ sub.ai_result.status }}</span>
                                             {% endif %}
+                                        </strong>
+                                        <br>
+                                        <small class="text-muted">
+                                            Best: {{ sub.ai_result.best_confidence|default('N/A') }}%
+                                        </small>
+                                    </div>
+
+                                    <!-- Top 5 Matches Dropdown -->
+                                    {% if sub.ai_result.top_matches %}
+                                    <details class="mt-2">
+                                        <summary class="text-primary" style="cursor: pointer; font-size: 0.85rem;">
+                                            <i class="fas fa-chevron-down me-1"></i> Top 5 Matches
+                                        </summary>
+                                        <div class="mt-2 p-2 bg-light rounded">
+                                            {% for match in sub.ai_result.top_matches %}
+                                            <div class="d-flex align-items-center mb-2 border-bottom pb-2">
+                                                <img src="/uploads/{{ match.photo_path }}"
+                                                    class="match-photo rounded me-2" alt="Match">
+                                                <div class="flex-grow-1">
+                                                    <small><strong>{{ match.application_id }}</strong></small><br>
+                                                    <small class="text-muted">
+                                                        {{ match.confidence }}%
+                                                        <span class="text-secondary">(dist: {{ match.distance }})</span>
+                                                    </small>
+                                                </div>
+                                            </div>
+                                            {% endfor %}
                                         </div>
-                                        <small class="text-muted">{{ sub.ai_confidence }}</small>
-                                    </td>
-                                    <td>
-                                        <small class="text-muted">{{ sub.verification_status }}</small>
-                                    </td>
-                                    <td>
-                                        <img src="/uploads/{{ sub.photo_path }}" 
-                                             alt="Candidate Photo" 
-                                             class="candidate-photo rounded"
-                                             data-bs-toggle="tooltip" 
-                                             title="AI Analysis Complete">
-                                    </td>
-                                    <td>
-                                        <small class="text-muted">{{ sub.timestamp }}</small>
-                                    </td>
-                                </tr>
+                                    </details>
+                                    {% else %}
+                                    <small class="text-muted d-block mt-1">No matches found</small>
+                                    {% endif %}
+                                </td>
+
+                                <!-- Confidence Bar -->
+                                <td>
+                                    <div class="progress" style="height: 8px; width: 80px;">
+                                        {% if sub.ai_result.best_confidence %}
+                                        <div class="progress-bar 
+                                            {% if sub.ai_result.status == 'Duplicate' %}bg-danger{% else %}bg-success{% endif %}"
+                                            style="width: {{ sub.ai_result.best_confidence }}%">
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    <small>{{ sub.ai_result.best_confidence|default('N/A') }}%</small>
+                                </td>
+
+                                <!-- Match Info -->
+                                <td>
+                                    <small>
+                                        {% if sub.ai_result.best_match_id %}
+                                        <strong>Match:</strong> {{ sub.ai_result.best_match_id }}<br>
+                                        {% endif %}
+                                        <strong>Time:</strong> {{ sub.ai_result.ai_time_seconds }}s
+                                    </small>
+                                </td>
+
+                                <!-- Photo -->
+                                <td>
+                                    <img src="/uploads/{{ sub.photo_path }}" class="candidate-photo rounded"
+                                        alt="Candidate">
+                                </td>
+
+                                <!-- Timestamp -->
+                                <td><small class="text-muted">{{ sub.timestamp }}</small></td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="8" class="text-center py-5 text-muted">
+                                    <i class="fas fa-inbox fa-3x mb-3"></i><br>
+                                    No applications submitted yet.
+                                </td>
+                            </tr>
                             {% endfor %}
                         </tbody>
                     </table>
@@ -148,86 +205,20 @@
             </div>
         </div>
 
-        <!-- Legend -->
-        <div class="row">
-            <div class="col-md-8">
-                <div class="card">
-                    <div class="card-header">
-                        <h6 class="card-title mb-0">
-                            <i class="fas fa-info-circle me-2 text-primary"></i>
-                            Analysis Legend
-                        </h6>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="d-flex align-items-center mb-2">
-                                    <div class="legend-color bg-success me-2"></div>
-                                    <span><strong>Verified Unique</strong> - No duplicates found</span>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="d-flex align-items-center mb-2">
-                                    <div class="legend-color bg-warning me-2"></div>
-                                    <span><strong>Potential Duplicate</strong> - Requires manual review</span>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="d-flex align-items-center mb-2">
-                                    <div class="legend-color bg-secondary me-2"></div>
-                                    <span><strong>Pending Analysis</strong> - AI processing in progress</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card bg-light">
-                    <div class="card-body text-center">
-                        <h6>AI Analysis Complete</h6>
-                        <p class="text-muted small">
-                            The system has processed {{ stats.total_applications }} applications using advanced facial recognition algorithms.
-                        </p>
-                        <div class="d-grid gap-2">
-                            <a href="/apply" class="btn btn-primary btn-sm">
-                                <i class="fas fa-plus me-1"></i>
-                                New Application
-                            </a>
-                            <a href="/admin/clear" class="btn btn-outline-secondary btn-sm">
-                                <i class="fas fa-redo me-1"></i>
-                                Reset Demo
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <div class="text-center mt-4">
+            <a href="/apply" class="btn btn-primary btn-lg">
+                <i class="fas fa-plus me-2"></i> Submit New Application
+            </a>
         </div>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
-    <script>
-        $(document).ready(function () {
-            $('#analysisTable').DataTable({
-                "order": [[0, "asc"]],
-                "pageLength": 10,
-                "responsive": true,
-                "language": {
-                    "search": "Search applications:",
-                    "lengthMenu": "Show _MENU_ entries",
-                    "info": "Showing _START_ to _END_ of _TOTAL_ applications"
-                }
-            });
+    <footer class="bg-light mt-5 py-4 text-center text-muted small">
+        <div class="container">
+            IndiaAI Face Authentication Challenge | Powered by DeepFace + Flask
+        </div>
+    </footer>
 
-            // Initialize tooltips
-            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-                return new bootstrap.Tooltip(tooltipTriggerEl)
-            });
-        });
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
 </html>
