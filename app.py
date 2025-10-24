@@ -9,12 +9,21 @@ import hashlib
 import pymongo
 from pymongo.errors import ConnectionFailure
 import uuid
+from flask_mail import Mail, Message   # <-- ADD
 
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = '/media/cair/4e7fa135-fc0e-4140-a0c6-9c81a4d992bd/XTRAtest/india-ai/uploads'
+app.config['UPLOAD_FOLDER'] = './uploads'
 app.config['SECRET_KEY'] = 'india-ai-secure-key-2024'  # Change in production
 app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024  # 2MB file size limit
 
+
+app.config['MAIL_SERVER']   = 'smtp.gmail.com'
+app.config['MAIL_PORT']     = 587
+app.config['MAIL_USE_TLS']  = True
+app.config['MAIL_USERNAME'] = 'yourgmail@gmail.com'      # <-- CHANGE
+app.config['MAIL_PASSWORD'] = 'your-app-password'        # <-- CHANGE (use App Password!)
+app.config['MAIL_DEFAULT_SENDER'] = 'yourgmail@gmail.com'
+mail = Mail(app)
 # MongoDB connection
 try:
     client = pymongo.MongoClient("mongodb://localhost:27017/", serverSelectionTimeoutMS=5000)
@@ -126,6 +135,22 @@ def submit_page():
                 result = collection.insert_one(submission)
                 print(f"Application saved to MongoDB with ID: {result.inserted_id}")
                 
+                try:
+                    msg = Message(
+                        subject="Your IndiaAI Application Submitted",
+                        recipients=[email],
+                        body=f"Your form has been submitted successfully!\n\n"
+                             f"Application ID: {submission['application_id']}\n"
+                             f"Submitted on: {submission['timestamp']}\n\n"
+                             f"Thank you!"
+                    )
+                    mail.send(msg)
+                    print(f"Flask-Mail: Email sent to {email}")
+                except Exception as e:
+                    print(f"Flask-Mail failed: {e}")
+                    # Optional: flash a warning so user knows email may not have gone
+                    flash("Application saved, but confirmation email could not be sent.", "warning")
+
                 # Clear session for new application
                 session.pop('application_id', None)
                 
