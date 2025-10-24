@@ -134,25 +134,6 @@ Visit: [http://127.0.0.1:5000](http://127.0.0.1:5000)
 4. Wait 2–5 sec → AI analyzes face
 5. Success → Redirect to form or dashboard
 6. Check **`/Dashboard`** → See AI result + top matches
-
----
-
-## Architecture Diagram
-
-```mermaid
-flowchart TD
-    A[User Browser] -->|Submit Form| B(Flask Server)
-    B --> C[Validate Form + Save Photo]
-    C --> D[DeepFace.find()]
-    D -->|Exclude Self| E[Gallery: All Other Photos]
-    E --> F[Top 5 Matches + Confidence]
-    F --> G[Save to MongoDB]
-    G --> H[Send Email via Gmail]
-    H --> I[Redirect + Show Result]
-    B --> J[/Dashboard → MongoDB Query]
-    J --> K[Render Results Table]
-```
-
 ---
 
 ## Screenshots (Text Preview)
