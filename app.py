@@ -9,7 +9,8 @@ import hashlib
 import pymongo
 from pymongo.errors import ConnectionFailure
 import uuid
-from flask_mail import Mail, Message   # <-- ADD
+from flask_mail import Mail, Message
+from dotenv import load_dotenv
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = './uploads'
@@ -20,9 +21,9 @@ app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024  # 2MB file size limit
 app.config['MAIL_SERVER']   = 'smtp.gmail.com'
 app.config['MAIL_PORT']     = 587
 app.config['MAIL_USE_TLS']  = True
-app.config['MAIL_USERNAME'] = 'yourgmail@gmail.com'      # <-- CHANGE
-app.config['MAIL_PASSWORD'] = 'your-app-password'        # <-- CHANGE (use App Password!)
-app.config['MAIL_DEFAULT_SENDER'] = 'yourgmail@gmail.com'
+app.config['MAIL_USERNAME'] = os.environ.get("MAIL_USERNAME")
+app.config['MAIL_PASSWORD'] = os.environ.get("MAIL_PASSWORD")
+app.config['MAIL_DEFAULT_SENDER'] = os.environ.get("MAIL_DEFAULT_SENDER")
 mail = Mail(app)
 # MongoDB connection
 try:
@@ -58,7 +59,6 @@ def instructions():
 def submit_page():
     """Main application submission page"""
     form = SubmissionForm()
-    submission_count = collection.count_documents({})
     
     # Generate unique application ID for this session
     if 'application_id' not in session:
@@ -77,7 +77,7 @@ def submit_page():
             # Validate image format
             if not photo.filename.lower().endswith(('.png', '.jpg', '.jpeg')):
                 flash("Invalid image format. Please upload PNG, JPG, or JPEG format.", "error")
-                return render_template('apply.html', form=form, submission_count=submission_count)
+                return render_template('apply.html', form=form)
 
             # Save image with secure filename
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -92,11 +92,11 @@ def submit_page():
                 # Verify image was saved
                 if not os.path.exists(filepath):
                     flash("Error: Image could not be saved. Please try again.", "error")
-                    return render_template('apply.html', form=form, submission_count=submission_count)
+                    return render_template('apply.html', form=form)
                     
             except Exception as e:
                 flash(f"Error saving image: {str(e)}", "error")
-                return render_template('apply.html', form=form, submission_count=submission_count)
+                return render_template('apply.html', form=form)
 
             # Validate image integrity
             try:
@@ -106,7 +106,7 @@ def submit_page():
             except Exception as e:
                 flash(f"Invalid image file. Please upload a valid photograph.", "error")
                 os.remove(filepath)  # Clean up invalid file
-                return render_template('apply.html', form=form, submission_count=submission_count)
+                return render_template('apply.html', form=form)
 
             # Compute image content hash for deduplication
             try:
@@ -115,7 +115,7 @@ def submit_page():
                 print(f"Image hash computed: {img_hash}")
             except Exception as e:
                 flash(f"Error processing image. Please try again.", "error")
-                return render_template('apply.html', form=form, submission_count=submission_count)
+                return render_template('apply.html', form=form)
 
             # Store submission in MongoDB
             submission = {
@@ -164,16 +164,16 @@ def submit_page():
                 
             except Exception as e:
                 flash(f"Error saving application: {str(e)}", "error")
-                return render_template('apply.html', form=form, submission_count=submission_count)
+                return render_template('apply.html', form=form)
                 
         else:
             # Form validation failed
             for field, errors in form.errors.items():
                 for error in errors:
                     flash(f"{getattr(form, field).label.text}: {error}", "error")
-            return render_template('apply.html', form=form, submission_count=submission_count)
+            return render_template('apply.html', form=form)
 
-    return render_template('apply.html', form=form, submission_count=submission_count)
+    return render_template('apply.html', form=form)
 
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
@@ -219,7 +219,7 @@ def apply_ai_deduplication_logic(submissions):
     
     return submissions
 
-@app.route('/results')
+@app.route('/Dashboard')
 def show_results():
     """Display AI deduplication results"""
     submissions = list(collection.find().sort("timestamp", pymongo.ASCENDING))

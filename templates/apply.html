@@ -28,14 +28,7 @@
                 <!-- Application Header -->
                 <div class="application-header text-center mb-5">
                     <h1 class="fw-bold text-primary">Application Form</h1>
-                    <p class="text-muted">Complete all fields for AI-powered face authentication</p>
-                    
-                    {% if submission_count < 5 %}
-                    <div class="progress mb-3" style="height: 8px;">
-                        <div class="progress-bar bg-success" style="width: {{ (submission_count / 5) * 100 }}%"></div>
-                    </div>
-                    <small class="text-muted">Demo Progress: {{ submission_count }} of 5 applications submitted</small>
-                    {% endif %}
+                    <p class="text-muted">Complete all fields for AI-powered face authentication.</p>
                 </div>
 
                 <!-- Flash Messages -->
@@ -60,7 +53,7 @@
                         </h5>
                     </div>
                     <div class="card-body p-4">
-                        <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+                        <form id="submissionForm" method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
                             {{ form.hidden_tag() }}
                             
                             <div class="row">
@@ -118,10 +111,17 @@
                             </div>
 
                             <div class="d-grid gap-2">
-                                <button type="submit" class="btn btn-primary btn-lg">
+                                <button type="submit" id="submitBtn" class="btn btn-primary btn-lg">
                                     <i class="fas fa-paper-plane me-2"></i>
                                     Submit Application for AI Verification
                                 </button>
+                                <!-- Loader (hidden by default) -->
+                                <div id="loader" class="text-center" style="display: none;">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <p class="text-muted mt-2">Submitting your application...</p>
+                                </div>
                                 <a href="/instructions" class="btn btn-outline-secondary">
                                     <i class="fas fa-question-circle me-2"></i>
                                     Need Help?
@@ -131,15 +131,13 @@
                     </div>
                 </div>
 
-                <!-- Demo Info -->
-                {% if submission_count >= 5 %}
+                <!-- Demo Info (optional, if you want to view results) -->
                 <div class="text-center mt-4">
-                    <a href="/results" class="btn btn-success btn-lg">
+                    <a href="/Dashboard" class="btn btn-success btn-lg">
                         <i class="fas fa-chart-bar me-2"></i>
                         View AI Analysis Results
                     </a>
                 </div>
-                {% endif %}
             </div>
         </div>
     </div>
@@ -155,6 +153,10 @@
                     if (!form.checkValidity()) {
                         event.preventDefault();
                         event.stopPropagation();
+                    } else {
+                        // Show loader on valid submit
+                        document.getElementById('submitBtn').style.display = 'none';
+                        document.getElementById('loader').style.display = 'block';
                     }
                     form.classList.add('was-validated');
                 }, false);
