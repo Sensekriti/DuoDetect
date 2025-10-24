@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit Application</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4 text-center">IndiaAI Face Authentication Challenge</h1>
+        <p class="text-center">Submission {{ submission_count + 1 }} of 5. All fields are required.</p>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+            {{ form.hidden_tag() }}
+            <div class="mb-3">
+                <label for="name" class="form-label">Name</label>
+                {{ form.name(class="form-control", required=True) }}
+                <div class="invalid-feedback">Name is required.</div>
+            </div>
+            <div class="mb-3">
+                <label for="email" class="form-label">Email</label>
+                {{ form.email(class="form-control", required=True) }}
+                <div class="invalid-feedback">Valid email is required.</div>
+            </div>
+            <div class="mb-3">
+                <label for="age" class="form-label">Age</label>
+                {{ form.age(class="form-control", required=True) }}
+                <div class="invalid-feedback">Age must be 18 or older.</div>
+            </div>
+            <div class="mb-3">
+                <label for="phone" class="form-label">Phone (10 digits)</label>
+                {{ form.phone(class="form-control", required=True) }}
+                <div class="invalid-feedback">Phone must be 10 digits.</div>
+            </div>
+            <div class="mb-3">
+                <label for="address" class="form-label">Address</label>
+                {{ form.address(class="form-control", required=True) }}
+                <div class="invalid-feedback">Address is required.</div>
+            </div>
+            <div class="mb-3">
+                <label for="photo" class="form-label">Passport Size Photo</label>
+                {{ form.photo(class="form-control", accept="image/*", required=True) }}
+                <div class="invalid-feedback">Photo (PNG/JPG/JPEG) is required.</div>
+            </div>
+            <button type="submit" class="btn btn-primary">Submit Application</button>
+        </form>
+
+        {% if submission_count >= 5 %}
+        <div class="mt-3">
+            <a href="{{ url_for('show_results') }}" class="btn btn-success">View Results</a>
+            <a href="{{ url_for('clear_submissions') }}" class="btn btn-warning">Clear All Submissions</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Bootstrap client-side validation
+        (function () {
+            'use strict';
+            const forms = document.querySelectorAll('.needs-validation');
+            Array.prototype.slice.call(forms).forEach(function (form) {
+                form.addEventListener('submit', function (event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    form.classList.add('was-validated');
+                }, false);
+            });
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Analysis Results - IndiaAI</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-robot me-2"></i>
+                IndiaAI Face Authentication
+            </a>
+            <div class="navbar-nav">
+                <a class="nav-link" href="/apply">New Application</a>
+                <a class="nav-link" href="/instructions">Instructions</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <!-- Results Header -->
+        <div class="row mb-5">
+            <div class="col">
+                <h1 class="text-center fw-bold text-primary">
+                    <i class="fas fa-chart-bar me-2"></i>
+                    AI-Powered Deduplication Analysis
+                </h1>
+                <p class="text-center text-muted">
+                    Advanced facial recognition analysis for duplicate application detection
+                </p>
+            </div>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="row mb-5">
+            <div class="col-md-3">
+                <div class="stat-card text-center p-4 bg-primary text-white rounded">
+                    <h3 class="fw-bold">{{ stats.total_applications }}</h3>
+                    <p class="mb-0">Total Applications</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card text-center p-4 bg-success text-white rounded">
+                    <h3 class="fw-bold">{{ stats.unique_applications }}</h3>
+                    <p class="mb-0">Unique Verified</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card text-center p-4 bg-warning text-white rounded">
+                    <h3 class="fw-bold">{{ stats.potential_duplicates }}</h3>
+                    <p class="mb-0">Potential Duplicates</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card text-center p-4 bg-secondary text-white rounded">
+                    <h3 class="fw-bold">{{ stats.pending_analysis }}</h3>
+                    <p class="mb-0">Pending Analysis</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Analysis Results -->
+        <div class="card shadow mb-5">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-microchip me-2 text-primary"></i>
+                    Real-time Application Analysis
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table id="analysisTable" class="table table-hover mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>#</th>
+                                <th>Application ID</th>
+                                <th>Candidate Name</th>
+                                <th>AI Analysis</th>
+                                <th>Confidence Level</th>
+                                <th>Status</th>
+                                <th>Photo</th>
+                                <th>Timestamp</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sub in submissions %}
+                                <tr class="ai-analysis-row ai-cluster-{{ sub.cluster_id }}">
+                                    <td><strong>{{ loop.index }}</strong></td>
+                                    <td>
+                                        <code>{{ sub.application_id }}</code>
+                                    </td>
+                                    <td>{{ sub.name }}</td>
+                                    <td>
+                                        {% if sub.cluster_id == 'A' %}
+                                            <span class="badge bg-warning">
+                                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                                Potential Duplicate
+                                            </span>
+                                        {% elif sub.cluster_id == 'B' %}
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check-circle me-1"></i>
+                                                Verified Unique
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">
+                                                <i class="fas fa-clock me-1"></i>
+                                                Pending Analysis
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="progress" style="height: 8px; width: 80px;">
+                                            {% if sub.ai_confidence != 'Pending' %}
+                                                <div class="progress-bar 
+                                                    {% if sub.cluster_id == 'A' %}bg-warning
+                                                    {% elif sub.cluster_id == 'B' %}bg-success
+                                                    {% else %}bg-secondary{% endif %}" 
+                                                    style="width: {{ sub.ai_confidence }}">
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        <small class="text-muted">{{ sub.ai_confidence }}</small>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ sub.verification_status }}</small>
+                                    </td>
+                                    <td>
+                                        <img src="/uploads/{{ sub.photo_path }}" 
+                                             alt="Candidate Photo" 
+                                             class="candidate-photo rounded"
+                                             data-bs-toggle="tooltip" 
+                                             title="AI Analysis Complete">
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ sub.timestamp }}</small>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">
+                            <i class="fas fa-info-circle me-2 text-primary"></i>
+                            Analysis Legend
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="d-flex align-items-center mb-2">
+                                    <div class="legend-color bg-success me-2"></div>
+                                    <span><strong>Verified Unique</strong> - No duplicates found</span>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="d-flex align-items-center mb-2">
+                                    <div class="legend-color bg-warning me-2"></div>
+                                    <span><strong>Potential Duplicate</strong> - Requires manual review</span>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="d-flex align-items-center mb-2">
+                                    <div class="legend-color bg-secondary me-2"></div>
+                                    <span><strong>Pending Analysis</strong> - AI processing in progress</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <h6>AI Analysis Complete</h6>
+                        <p class="text-muted small">
+                            The system has processed {{ stats.total_applications }} applications using advanced facial recognition algorithms.
+                        </p>
+                        <div class="d-grid gap-2">
+                            <a href="/apply" class="btn btn-primary btn-sm">
+                                <i class="fas fa-plus me-1"></i>
+                                New Application
+                            </a>
+                            <a href="/admin/clear" class="btn btn-outline-secondary btn-sm">
+                                <i class="fas fa-redo me-1"></i>
+                                Reset Demo
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            $('#analysisTable').DataTable({
+                "order": [[0, "asc"]],
+                "pageLength": 10,
+                "responsive": true,
+                "language": {
+                    "search": "Search applications:",
+                    "lengthMenu": "Show _MENU_ entries",
+                    "info": "Showing _START_ to _END_ of _TOTAL_ applications"
+                }
+            });
+
+            // Initialize tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl)
+            });
+        });
+    </script>
+</body>
+</html>

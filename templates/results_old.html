@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Duplicate Check Results</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <style>
+        .cluster-A { 
+            border-left: 5px solid #FF6B6B; 
+            background-color: #FF6B6B20; 
+        }
+        .cluster-B { 
+            border-left: 5px solid #4ECDC4; 
+            background-color: #4ECDC420; 
+        }
+        .cluster-unique { 
+            border-left: 5px solid #CCCCCC; 
+        }
+        .table-hover tbody tr:hover {
+            transform: translateY(-2px);
+            transition: transform 0.2s;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4 text-center">Submission Results</h1>
+        <p class="text-center text-muted">Sequence-based duplication pattern: <strong class="text-primary">A B A A B</strong></p>
+        
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Sequence Pattern Explanation</h5>
+                <p class="card-text mb-2">
+                    <strong>First 5 submissions follow the A B A A B pattern:</strong>
+                </p>
+                <div class="d-flex gap-2 mb-3">
+                    <span class="badge bg-danger">Position 1 = A</span>
+                    <span class="badge bg-info">Position 2 = B</span>
+                    <span class="badge bg-danger">Position 3 = A</span>
+                    <span class="badge bg-danger">Position 4 = A</span>
+                    <span class="badge bg-info">Position 5 = B</span>
+                </div>
+                <p class="card-text mb-0">
+                    <strong>Submissions beyond position 5 are marked as Unique.</strong>
+                </p>
+            </div>
+        </div>
+
+        <h2 class="mt-4">All Submissions</h2>
+        <div class="table-responsive">
+            <table id="submissionsTable" class="table table-bordered table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>#</th>
+                        <th>Cluster</th>
+                        <th>Sequence Position</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Age</th>
+                        <th>Phone</th>
+                        <th>Address</th>
+                        <th>Photo</th>
+                        <th>Timestamp</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sub in submissions %}
+                        <tr class="cluster-{{ sub.cluster_id }}">
+                            <td><strong>{{ loop.index }}</strong></td>
+                            <td>
+                                {% if sub.cluster_id == 'unique' %}
+                                    <span class="badge bg-secondary">Unique</span>
+                                {% else %}
+                                    <span class="badge" style="background-color: {{ sub.cluster_color }};">
+                                        Cluster {{ sub.cluster_id }} ({{ sub.cluster_size }} total)
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small class="text-muted">{{ sub.cluster_sequence }}</small>
+                            </td>
+                            <td>{{ sub.name }}</td>
+                            <td>{{ sub.email }}</td>
+                            <td>{{ sub.age }}</td>
+                            <td>{{ sub.phone }}</td>
+                            <td>{{ sub.address }}</td>
+                            <td>
+                                <img src="/uploads/{{ sub.photo_path }}" alt="Photo" class="img-fluid rounded" style="max-width: 80px; height: auto;">
+                            </td>
+                            <td>{{ sub.timestamp }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="mt-4 p-3 bg-light rounded">
+            <h4>Cluster Legend:</h4>
+            <div class="d-flex flex-wrap gap-3">
+                <div class="d-flex align-items-center">
+                    <div class="color-box me-2" style="width: 20px; height: 20px; background-color: #FF6B6B; border-radius: 3px;"></div>
+                    <span><strong>Cluster A</strong> - Positions 1, 3, 4 (Red)</span>
+                </div>
+                <div class="d-flex align-items-center">
+                    <div class="color-box me-2" style="width: 20px; height: 20px; background-color: #4ECDC4; border-radius: 3px;"></div>
+                    <span><strong>Cluster B</strong> - Positions 2, 5 (Teal)</span>
+                </div>
+                <div class="d-flex align-items-center">
+                    <div class="color-box me-2" style="width: 20px; height: 20px; background-color: #CCCCCC; border-radius: 3px;"></div>
+                    <span><strong>Unique</strong> - Beyond 5 submissions (Gray)</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-4 d-flex gap-2">
+            <a href="/" class="btn btn-success">Start Over</a>
+            <a href="/clear" class="btn btn-warning">Clear All Submissions</a>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            $('#submissionsTable').DataTable({
+                "order": [[0, "asc"]], // Sort by sequence number
+                "pageLength": 10,
+                "responsive": true,
+                "language": {
+                    "search": "Search submissions:",
+                    "lengthMenu": "Show _MENU_ entries per page",
+                    "info": "Showing _START_ to _END_ of _TOTAL_ submissions",
+                    "paginate": {
+                        "previous": "Previous",
+                        "next": "Next"
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
