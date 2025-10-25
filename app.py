@@ -136,21 +136,40 @@ def submit_page():
         try:
             collection.insert_one(submission)
 
-            # Send Email
             try:
-                msg = Message(
-                    subject="Application Submitted - IndiaAI",
-                    recipients=[email],
-                    body=(
+                duplicate_count = len(top_matches)
+
+                if status == "Duplicate":
+                    subject = "Warning: Duplicate Application Detected"
+                    body = (
+                        f"Dear {name},\n\n"
+                        f"Your application has been flagged as a **duplicate**.\n\n"
+                        f"Application ID: {submission['application_id']}\n"
+                        f"Submitted on: {submission['timestamp']}\n\n"
+                        f"We found **{duplicate_count} similar face(s)** in our system.\n"
+                        f"Best match confidence: {best_confidence}%\n"
+                        f"Processing time: {ai_time}s\n\n"
+                        f"Please ensure you are submitting a unique application.\n"
+                        f"Contact support if you believe this is an error.\n\n"
+                        f"DuoDetect Team"
+                    )
+                else:
+                    subject = "Application Submitted - DuoDetect"
+                    body = (
                         f"Dear {name},\n\n"
                         f"Your application has been submitted successfully!\n\n"
                         f"Application ID: {submission['application_id']}\n"
                         f"Submitted on: {submission['timestamp']}\n\n"
-                        f"We are processing your photo with AI face authentication.\n"
-                        f"Thank you!\n\nIndiaAI Team"
+                        f"Thank you!\n\nDuoDetect Team"
                     )
+
+                msg = Message(
+                    subject=subject,
+                    recipients=[email],
+                    body=body
                 )
                 mail.send(msg)
+                print(f"Email sent to {email} | Status: {status}")
             except Exception as e:
                 print(f"Email failed: {e}")
 
